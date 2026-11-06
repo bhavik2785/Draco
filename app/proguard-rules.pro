@@ -1,1 +1,2 @@
-# No custom obfuscation rules required for the demo.
+# Keep the JNI bridge class so the native method name resolves at runtime.
+-keep class com.example.dracodemo.NativeDemo { *; }

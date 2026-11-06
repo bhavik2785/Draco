@@ -1,124 +1,84 @@
-
-package com.example.bgmcompanion
+package com.example.dracodemo
 
 import android.content.Intent
 import android.net.Uri
+import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
-import androidx.core.content.ContextCompat
+import androidx.compose.ui.platform.LocalContext
 
 class MainActivity : ComponentActivity() {
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-
+        enableEdgeToEdge()
         setContent {
-            MaterialTheme {
-                Column(
-                    Modifier
-                        .fillMaxSize()
-                        .verticalScroll(rememberScrollState())
-                        .padding(20.dp),
-                    verticalArrangement = Arrangement.spacedBy(16.dp)
+            DracoDemoTheme {
+                Surface(
+                    modifier = Modifier.fillMaxSize(),
+                    color = MaterialTheme.colorScheme.background
                 ) {
-                    Text(
-                        "BGMI Companion",
-                        style = MaterialTheme.typography.headlineMedium
-                    )
-
-                    Text("Your gaming companion and quick settings panel.")
-
-                    Button(
-                        onClick = { enableOverlay() },
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Text("Enable Floating Panel")
-                    }
-
-                    Button(
-                        onClick = {
-                            stopService(
-                                Intent(this@MainActivity, OverlayService::class.java)
-                            )
-                        },
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Text("Stop Floating Panel")
-                    }
-
-                    Button(
-                        onClick = { openBgmi() },
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Text("Open BGMI")
-                    }
-
-                    Text("Sensitivity notes")
-
-                    var camera by remember { mutableFloatStateOf(90f) }
-                    var ads by remember { mutableFloatStateOf(85f) }
-                    var gyro by remember { mutableFloatStateOf(250f) }
-
-                    Text("Camera: ${camera.toInt()}")
-                    Slider(
-                        value = camera,
-                        onValueChange = { camera = it },
-                        valueRange = 0f..100f
-                    )
-
-                    Text("ADS: ${ads.toInt()}")
-                    Slider(
-                        value = ads,
-                        onValueChange = { ads = it },
-                        valueRange = 0f..100f
-                    )
-
-                    Text("Gyroscope: ${gyro.toInt()}")
-                    Slider(
-                        value = gyro,
-                        onValueChange = { gyro = it },
-                        valueRange = 0f..400f
-                    )
-
-                    Text(
-                        "These sliders are personal notes only. " +
-                        "They do not change BGMI settings or inspect game data."
-                    )
+                    AppRoot()
                 }
             }
         }
     }
+}
 
-    private fun enableOverlay() {
-        if (!Settings.canDrawOverlays(this)) {
-            val intent = Intent(
-                Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
-                Uri.parse("package:$packageName")
-            )
-            startActivity(intent)
-        } else {
-            ContextCompat.startForegroundService(
-                this,
-                Intent(this, OverlayService::class.java)
-            )
-        }
+@Composable
+private fun AppRoot() {
+    val context = LocalContext.current
+    var panelRunning by remember { mutableStateOf(false) }
+
+    Scaffold { innerPadding ->
+        SimulatorScreen(
+            modifier = Modifier.padding(innerPadding),
+            targets = DemoTarget.samples(),
+            panelRunning = panelRunning,
+            onTogglePanel = {
+                if (panelRunning) {
+                    FloatingPanelService.stop(context)
+                    panelRunning = false
+                } else {
+                    if (canDrawOverlays(context)) {
+                        FloatingPanelService.start(context)
+                        panelRunning = true
+                    } else {
+                        requestOverlayPermission(context)
+                    }
+                }
+            }
+        )
     }
+}
 
-    private fun openBgmi() {
-        val intent =
-            packageManager.getLaunchIntentForPackage("com.pubg.imobile")
+private fun canDrawOverlays(context: android.content.Context): Boolean {
+    return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+        Settings.canDrawOverlays(context)
+    } else {
+        true
+    }
+}
 
-        if (intent != null) {
-            startActivity(intent)
-        }
+private fun requestOverlayPermission(context: android.content.Context) {
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+        val intent = Intent(
+            Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+            Uri.parse("package:${context.packageName}")
+        ).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        context.startActivity(intent)
     }
 }

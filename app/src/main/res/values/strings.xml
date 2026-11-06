@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Draco Demo</string>
+    <string name="panel_running">Floating panel is running</string>
+    <string name="panel_title">Draco panel</string>
+    <string name="panel_bump">Bump</string>
+    <string name="panel_close">Close</string>
+    <!-- %1$d = counter, %2$d = clamped value -->
+    <string name="panel_value">count %1$d · clamped %2$d</string>
+</resources>
